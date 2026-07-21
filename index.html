@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>ULTRA PIANO V46 PRO - 2026.07.21</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+    .custom-scrollbar::-webkit-scrollbar { height: 8px; width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(150,150,150,0.3); border-radius: 10px; }
+    @keyframes flare {
+      0% { transform: scale(0.3); opacity: 0.8; }
+      100% { transform: scale(2.5); opacity: 0; }
+    }
+    .animate-flare {
+      position: absolute;
+      pointer-events: none;
+      border-radius: 50%;
+      border: 2px solid;
+      width: 80px;
+      height: 80px;
+      animation: flare 0.8s cubic-bezier(0.1, 1, 0.2, 1) forwards;
+      z-index: 2000;
+    }
+  </style>
+</head>
+<body class="bg-black text-zinc-400 font-sans h-[100dvh] overflow-hidden">
+
+  <!-- ================= スタート画面 ================= -->
+  <div id="start-screen" class="fixed inset-0 flex flex-col items-center justify-center p-6 bg-[#020202] text-white z-[300]">
+    <h1 class="text-7xl sm:text-8xl font-black italic tracking-tighter opacity-90 drop-shadow-md">V46 PRO</h1>
+    <p class="mb-12 text-[10px] font-black tracking-[2.5em] uppercase opacity-60 text-zinc-400">60 Organic Instruments</p>
+
+    <div class="flex flex-col gap-4 w-full max-w-xs z-10">
+      <button id="btn-start" class="bg-indigo-600 text-white py-7 rounded-2xl font-black text-2xl shadow-xl hover:bg-indigo-500 active:scale-95 transition-all">
+        スタート
+      </button>
+      <div class="grid grid-cols-2 gap-3">
+        <button id="btn-open-settings" class="bg-zinc-900 border border-zinc-800 text-zinc-300 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest hover:text-white transition-colors">
+          設定
+        </button>
+        <button id="btn-open-login" class="bg-zinc-900 border border-zinc-800 text-zinc-400 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all">
+          ログイン
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= ピアノメイン画面 ================= -->
+  <div id="piano-screen" class="h-[100dvh] flex flex-col select-none overflow-hidden hidden bg-black">
+    
+    <!-- 音色選択エリア（上部スクロール） -->
+    <div id="tone-selector-bar" class="border-b border-zinc-900 p-2.5 z-[100] overflow-y-auto max-h-[36vh] custom-scrollbar bg-zinc-950/90">
+      <div id="tone-groups-container" class="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-2"></div>
+    </div>
+
+    <!-- 鍵盤エリア -->
+    <div id="keyboard-viewport" class="flex-grow relative overflow-x-auto overflow-y-hidden custom-scrollbar touch-pan-x flex items-center">
+      <div id="particles-container"></div>
+      <div class="flex h-[280px] px-8 min-w-max items-start">
+        <div id="piano-keys-wrapper" class="relative h-full">
+          <div id="white-keys-container" class="flex h-full relative z-10"></div>
+          <div id="black-keys-container" class="absolute inset-0 pointer-events-none z-[999]"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 最下部コントロール＆終了ボタン -->
+    <div id="bottom-bar" class="p-4 flex items-center justify-between border-t border-zinc-900 bg-zinc-950 shrink-0">
+      <div class="flex gap-8 opacity-70">
+        <div>
+          <p id="lbl-tone-title" class="text-[6px] font-black uppercase tracking-widest">音色</p>
+          <p id="current-tone-name" class="text-[10px] font-black italic">Grand Piano</p>
+        </div>
+        <div>
+          <p class="text-[6px] font-black uppercase tracking-widest">Date</p>
+          <p class="text-[10px] font-black">2026.07.21</p>
+        </div>
+      </div>
+
+      <button id="btn-exit" class="px-7 py-2.5 rounded-full bg-indigo-600 text-white text-[9px] font-black uppercase tracking-widest shadow-md hover:bg-indigo-700 active:scale-95 transition-all">
+        終了
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= 設定モーダル ================= -->
+  <div id="settings-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[500] flex items-center justify-center p-6 hidden">
+    <div id="settings-card" class="p-8 rounded-3xl w-full max-w-sm border border-zinc-800 bg-zinc-950 text-white shadow-2xl">
+      <h2 id="lbl-settings-heading" class="text-base font-black mb-6 italic uppercase tracking-widest opacity-70">設定</h2>
+      <div class="space-y-6">
+        <div>
+          <label id="lbl-lang" class="text-[9px] font-black uppercase mb-2 block tracking-widest opacity-60">言語</label>
+          <select id="select-lang" class="w-full p-3 rounded-xl text-xs font-bold outline-none border bg-zinc-900 border-zinc-800 text-white">
+            <option value="ja">日本語 (Japanese)</option>
+            <option value="en">English</option>
+            <option value="ko">한국어 (Korean)</option>
+            <option value="zh">中文 (Chinese)</option>
+          </select>
+        </div>
+        <div>
+          <label id="lbl-theme" class="text-[9px] font-black uppercase mb-2 block tracking-widest opacity-60">テーマ</label>
+          <div class="grid grid-cols-2 gap-2">
+            <button id="btn-theme-black" class="py-3 rounded-xl text-xs font-bold border transition-all bg-indigo-600 text-white border-indigo-500">ブラックモード</button>
+            <button id="btn-theme-white" class="py-3 rounded-xl text-xs font-bold border transition-all bg-zinc-900 text-zinc-400 border-zinc-800">ホワイトモード</button>
+          </div>
+        </div>
+        <div>
+          <label id="lbl-keywidth" class="text-[9px] font-black uppercase mb-2 block tracking-widest opacity-60">鍵盤幅</label>
+          <input id="slider-keywidth" type="range" min="65" max="130" value="85" class="w-full accent-indigo-600">
+        </div>
+        <div>
+          <label id="lbl-volume" class="text-[9px] font-black uppercase mb-2 block tracking-widest opacity-60">音量</label>
+          <input id="slider-volume" type="range" min="0" max="100" value="70" class="w-full accent-indigo-600">
+        </div>
+      </div>
+      <button id="btn-close-settings" class="w-full mt-8 bg-indigo-600 text-white py-3.5 rounded-xl font-black uppercase text-xs">OK</button>
+    </div>
+  </div>
+
+  <!-- ================= ログインモーダル ================= -->
+  <div id="login-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[500] flex items-center justify-center p-6 hidden">
+    <div id="login-card" class="p-8 rounded-3xl w-full max-w-sm border border-zinc-800 bg-zinc-950 text-white shadow-2xl">
+      <h2 id="lbl-login-heading" class="text-base font-black mb-4 italic uppercase tracking-widest opacity-70">ログイン</h2>
+      <div class="space-y-3">
+        <input id="input-username" type="text" placeholder="ユーザー名" class="w-full p-3.5 rounded-xl text-xs font-bold outline-none border bg-zinc-900 border-zinc-800 text-white">
+        <input id="input-password" type="password" placeholder="パスワード" class="w-full p-3.5 rounded-xl text-xs font-bold outline-none border bg-zinc-900 border-zinc-800 text-white">
+        <button id="btn-submit-login" class="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-black uppercase text-xs mt-4">Login</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= ロジック・スクリプト ================= -->
+  <script>
+    // 翻訳辞書 (4ヶ国語)
+    const LANGUAGES = {
+      ja: { start: "スタート", settings: "設定", login: "ログイン", logout: "ログアウト", user: "ユーザー名", pass: "パスワード", lang: "言語", theme: "テーマ", black: "ブラックモード", white: "ホワイトモード", volume: "音量", keyWidth: "鍵盤幅", exit: "終了", tone: "音色" },
+      en: { start: "START", settings: "SETTINGS", login: "LOGIN", logout: "LOGOUT", user: "Username", pass: "Password", lang: "Language", theme: "Theme", black: "Black Mode", white: "White Mode", volume: "Volume", keyWidth: "Key Width", exit: "EXIT", tone: "TONE" },
+      ko: { start: "시작", settings: "설정", login: "로그인", logout: "로그아웃", user: "사용자 이름", pass: "비밀번호", lang: "언어", theme: "테마", black: "블랙 모드", white: "화이트 모드", volume: "볼륨", keyWidth: "건반 너비", exit: "종료", tone: "음색" },
+      zh: { start: "开始", settings: "设置", login: "登录", logout: "登出", user: "用户名", pass: "密码", lang: "语言", theme: "主题", black: "黑夜模式", white: "白天模式", volume: "音量", keyWidth: "琴键宽度", exit: "退出", tone: "音色" }
+    };
+
+    // 60音色の定義 (カウベル金属音を徹底排除し、ローパスフィルターや自然な揺れを採用)
+    const SOUND_GROUPS = {
+      PIANO: [
+        { id: 'p1', n: "Grand Piano", type: "triangle", cutoff: 3500, attack: 0.005, release: 1.8, subType: "sine", subRatio: 0.5 },
+        { id: 'p2', n: "Upright PF", type: "sawtooth", cutoff: 2000, attack: 0.008, release: 1.2 },
+        { id: 'p3', n: "Rhodes EP", type: "sine", cutoff: 2800, attack: 0.01, release: 2.2, vibrato: 1.5, vibratoSpeed: 4 },
+        { id: 'p4', n: "Wurlitzer", type: "square", cutoff: 1800, attack: 0.005, release: 1.5 },
+        { id: 'p5', n: "Felt Piano", type: "triangle", cutoff: 900, attack: 0.02, release: 2.0 }
+      ],
+      ORGAN: [
+        { id: 'og1', n: "Hammond B3", type: "sine", cutoff: 4000, attack: 0.02, release: 0.8, subType: "sine", subRatio: 2.0 },
+        { id: 'og2', n: "Church Organ", type: "sawtooth", cutoff: 5000, attack: 0.05, release: 2.5, subType: "square", subRatio: 0.5 },
+        { id: 'og3', n: "Accordion", type: "square", cutoff: 2500, attack: 0.03, release: 0.5 },
+        { id: 'og4', n: "Harmonium", type: "triangle", cutoff: 1800, attack: 0.08, release: 1.2 },
+        { id: 'og5', n: "Jazz Drawbar", type: "sine", cutoff: 3000, attack: 0.01, release: 0.6 }
+      ],
+      STRINGS: [
+        { id: 'st1', n: "Orchestra", type: "sawtooth", cutoff: 2500, attack: 0.3, release: 3.0, vibrato: 2, vibratoSpeed: 5 },
+        { id: 'st2', n: "Solo Cello", type: "sawtooth", cutoff: 1200, attack: 0.15, release: 2.0, octave: -1 },
+        { id: 'st3', n: "Chamber Str", type: "triangle", cutoff: 3000, attack: 0.2, release: 2.5 },
+        { id: 'st4', n: "Pizzicato", type: "sawtooth", cutoff: 2200, attack: 0.001, release: 0.3 },
+        { id: 'st5', n: "Concert Harp", type: "sine", cutoff: 3500, attack: 0.002, release: 2.8 }
+      ],
+      WIND_VOX: [
+        { id: 'wv1', n: "Soft Flute", type: "sine", cutoff: 2000, attack: 0.08, release: 1.2, vibrato: 3, vibratoSpeed: 6 },
+        { id: 'wv2', n: "Ocarina", type: "sine", cutoff: 1500, attack: 0.05, release: 1.0 },
+        { id: 'wv3', n: "Choir Aahs", type: "triangle", cutoff: 1800, attack: 0.4, release: 3.5 },
+        { id: 'wv4', n: "Vocal Pad", type: "sine", cutoff: 1200, attack: 0.5, release: 4.0, subType: "triangle", subRatio: 1.0 },
+        { id: 'wv5', n: "Whistle", type: "sine", cutoff: 2500, attack: 0.03, release: 0.8, vibrato: 4 }
+      ],
+      GUITAR_PLUCK: [
+        { id: 'gt1', n: "Aco Guitar", type: "triangle", cutoff: 3000, attack: 0.005, release: 1.6 },
+        { id: 'gt2', n: "Koto (箏)", type: "sawtooth", cutoff: 2200, attack: 0.002, release: 1.8 },
+        { id: 'gt3', n: "Banjo", type: "square", cutoff: 3500, attack: 0.002, release: 0.6 },
+        { id: 'gt4', n: "Marimba", type: "sine", cutoff: 1800, attack: 0.001, release: 0.8, octave: 1 },
+        { id: 'gt5', n: "Music Box", type: "sine", cutoff: 4500, attack: 0.001, release: 2.5, octave: 1 }
+      ],
+      BRASS: [
+        { id: 'br1', n: "Synth Brass", type: "sawtooth", cutoff: 3200, attack: 0.05, release: 1.5, subType: "sawtooth", subRatio: 0.5 },
+        { id: 'br2', n: "Trumpet", type: "sawtooth", cutoff: 4000, attack: 0.03, release: 1.0, vibrato: 2 },
+        { id: 'br3', n: "French Horn", type: "triangle", cutoff: 1500, attack: 0.1, release: 2.0, octave: -1 },
+        { id: 'br4', n: "Saxophone", type: "square", cutoff: 2800, attack: 0.04, release: 1.2, vibrato: 2.5 },
+        { id: 'br5', n: "Harmonica", type: "square", cutoff: 2000, attack: 0.03, release: 0.9 }
+      ],
+      SYNTH_LEAD: [
+        { id: 'sl1', n: "Warm Saw Lead", type: "sawtooth", cutoff: 3000, attack: 0.01, release: 1.2 },
+        { id: 'sl2', n: "Square Lead", type: "square", cutoff: 2500, attack: 0.01, release: 1.0 },
+        { id: 'sl3', n: "Acid Synth", type: "sawtooth", cutoff: 1800, attack: 0.005, release: 0.7 },
+        { id: 'sl4', n: "Whistle Lead", type: "sine", cutoff: 3000, attack: 0.02, release: 1.5, vibrato: 3 },
+        { id: 'sl5', n: "Soft Poly", type: "triangle", cutoff: 2200, attack: 0.03, release: 2.0 }
+      ],
+      SYNTH_PAD: [
+        { id: 'pd1', n: "Analog Pad", type: "sawtooth", cutoff: 1200, attack: 0.6, release: 4.5 },
+        { id: 'pd2', n: "Space Ether", type: "sine", cutoff: 1800, attack: 0.8, release: 5.0, vibrato: 1.5 },
+        { id: 'pd3', n: "Crystal Pad", type: "triangle", cutoff: 2500, attack: 0.4, release: 3.5, octave: 1 },
+        { id: 'pd4', n: "Sweep Pad", type: "sawtooth", cutoff: 900, attack: 1.0, release: 4.0 },
+        { id: 'pd5', n: "Ambient Float", type: "sine", cutoff: 1500, attack: 0.7, release: 6.0 }
+      ],
+      BASS: [
+        { id: 'bs1', n: "Acoustic Bass", type: "triangle", cutoff: 800, attack: 0.01, release: 1.2, octave: -1 },
+        { id: 'bs2', n: "Slap Bass", type: "sawtooth", cutoff: 2000, attack: 0.005, release: 0.8, octave: -1 },
+        { id: 'bs3', n: "Synth Sub Bass", type: "sine", cutoff: 500, attack: 0.01, release: 1.5, octave: -1 },
+        { id: 'bs4', n: "Acid Bass", type: "sawtooth", cutoff: 1200, attack: 0.008, release: 0.6, octave: -1 },
+        { id: 'bs5', n: "808 Sub", type: "sine", cutoff: 350, attack: 0.001, release: 2.0, octave: -2 }
+      ],
+      RETRO_8BIT: [
+        { id: '8b1', n: "NES Square", type: "square", cutoff: 6000, attack: 0.001, release: 0.4 },
+        { id: '8b2', n: "GameBoy Lead", type: "square", cutoff: 5000, attack: 0.001, release: 0.6 },
+        { id: '8b3', n: "Chip Arp", type: "triangle", cutoff: 8000, attack: 0.001, release: 0.3 },
+        { id: '8b4', n: "Retro Jump", type: "square", cutoff: 4000, attack: 0.001, release: 0.2 },
+        { id: '8b5', n: "25% Pulse", type: "square", cutoff: 4500, attack: 0.001, release: 0.5 }
+      ],
+      LIMINAL_LOFI: [
+        { id: 'lim1', n: "Cassette EP", type: "sine", cutoff: 1600, attack: 0.02, release: 2.2, vibrato: 2.0, vibratoSpeed: 3 },
+        { id: 'lim2', n: "Mall Atmos", type: "triangle", cutoff: 1100, attack: 0.3, release: 4.0 },
+        { id: 'lim3', n: "Vinyl Keys", type: "sine", cutoff: 1400, attack: 0.01, release: 1.8 },
+        { id: 'lim4', n: "Midnight Mem", type: "sine", cutoff: 900, attack: 0.1, release: 3.5, octave: -1 },
+        { id: 'lim5', n: "Dreamy Box", type: "triangle", cutoff: 2200, attack: 0.005, release: 3.0, octave: 1 }
+      ],
+      VIP_SPECIAL: [
+        { id: 'v1', n: "Celestial Vox", type: "sine", cutoff: 2200, attack: 0.5, release: 5.0, vip: true },
+        { id: 'v2', n: "Cyber Pulse", type: "sawtooth", cutoff: 3500, attack: 0.01, release: 2.0, vip: true },
+        { id: 'v3', n: "Quantum Orch", type: "triangle", cutoff: 2800, attack: 0.2, release: 4.0, vip: true },
+        { id: 'v4', n: "Deep Space", type: "sine", cutoff: 800, attack: 1.0, release: 7.0, vip: true },
+        { id: 'v5', n: "July2026", type: "sine", cutoff: 2500, attack: 0.05, release: 3.5, vip: true }
+      ]
+    };
+
+    // グローバル状態
+    let state = {
+      lang: 'ja',
+      theme: 'black',
+      volume: 70,
+      keyWidth: 85,
+      isVip: false,
+      activeTone: SOUND_GROUPS.PIANO[0]
+    };
+
+    let audioCtx = null;
+    let masterGain = null;
+
+    // --- Web Audio 初期化 ---
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        masterGain = audioCtx.createGain();
+        masterGain.gain.value = state.volume / 100;
+        masterGain.connect(audioCtx.destination);
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    // --- 発音処理 (pointerdown一重発火) ---
+    function playNote(freq, evt) {
+      if (evt) {
+        evt.preventDefault();
+        evt.stopPropagation();
+      }
+      if (!audioCtx) initAudio();
+      if (!audioCtx) return;
+
+      const now = audioCtx.currentTime;
+      const tone = state.activeTone;
+      const octaveShift = tone.octave || 0;
+      const actualFreq = freq * Math.pow(2, octaveShift);
+
+      const osc = audioCtx.createOscillator();
+      const filter = audioCtx.createBiquadFilter();
+      const gainNode = audioCtx.createGain();
+
+      osc.type = tone.type || 'sine';
+      osc.frequency.setValueAtTime(actualFreq, now);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(tone.cutoff || 3000, now);
+
+      const attack = tone.attack || 0.01;
+      const release = tone.release || 1.5;
+
+      gainNode.gain.setValueAtTime(0, now);
+      gainNode.gain.linearRampToValueAtTime(0.35, now + attack);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + attack + release);
+
+      // サブオシレーター
+      if (tone.subType) {
+        const subOsc = audioCtx.createOscillator();
+        const subGain = audioCtx.createGain();
+        subOsc.type = tone.subType;
+        subOsc.frequency.setValueAtTime(actualFreq * (tone.subRatio || 0.5), now);
+        subGain.gain.setValueAtTime(0.12, now);
+        subOsc.connect(filter);
+        subOsc.start(now);
+        subOsc.stop(now + attack + release);
+      }
+
+      // 自然なビブラート
+      if (tone.vibrato) {
+        const lfo = audioCtx.createOscillator();
+        const lfoGain = audioCtx.createGain();
+        lfo.frequency.value = tone.vibratoSpeed || 5;
+        lfoGain.gain.value = tone.vibrato;
+        lfo.connect(osc.frequency);
+        lfo.start(now);
+        lfo.stop(now + attack + release);
+      }
+
+      osc.connect(filter);
+      filter.connect(gainNode);
+      gainNode.connect(masterGain);
+
+      osc.start(now);
+      osc.stop(now + attack + release);
+
+      // エフェクトパーティクル生成
+      if (evt) createParticle(evt.clientX || (evt.touches && evt.touches[0].clientX) || 0, evt.clientY || (evt.touches && evt.touches[0].clientY) || 0, freq);
+    }
+
+    function createParticle(x, y, freq) {
+      if (!x || !y) return;
+      const p = document.createElement('div');
+      p.className = 'animate-flare';
+      p.style.left = (x - 40) + 'px';
+      p.style.top = (y - 40) + 'px';
+      p.style.borderColor = `hsla(${freq % 360}, 85%, 55%, 0.5)`;
+      document.getElementById('particles-container').appendChild(p);
+      setTimeout(() => p.remove(), 800);
+    }
+
+    // --- ピアノ鍵盤データの計算 ---
+    function buildPianoKeys() {
+      const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+      const whiteKeys = [];
+      const blackKeys = [];
+      let whiteIndex = 0;
+
+      for (let oct = 2; oct <= 6; oct++) {
+        notes.forEach((n) => {
+          const freq = 440 * Math.pow(2, (notes.indexOf(n) + (oct - 4) * 12 + 3) / 12);
+          if (!n.includes('#')) {
+            whiteKeys.push({ n, freq, id: `${n}${oct}`, whiteIndex });
+            whiteIndex++;
+          } else {
+            blackKeys.push({ n, freq, id: `${n}${oct}`, whiteIndexBefore: whiteIndex });
+          }
+        });
+      }
+      return { whiteKeys, blackKeys };
+    }
+
+    // --- DOM 描画関数 ---
+    function renderUI() {
+      const t = LANGUAGES[state.lang] || LANGUAGES.ja;
+      const isDark = state.theme === 'black';
+
+      // テキスト反映
+      document.getElementById('btn-start').innerText = t.start;
+      document.getElementById('btn-open-settings').innerText = t.settings;
+      document.getElementById('btn-open-login').innerText = state.isVip ? t.logout : t.login;
+      document.getElementById('btn-exit').innerText = t.exit;
+      document.getElementById('lbl-settings-heading').innerText = t.settings;
+      document.getElementById('lbl-login-heading').innerText = t.login;
+      document.getElementById('lbl-lang').innerText = t.lang;
+      document.getElementById('lbl-theme').innerText = t.theme;
+      document.getElementById('lbl-keywidth').innerText = t.keyWidth;
+      document.getElementById('lbl-volume').innerText = t.volume;
+      document.getElementById('lbl-tone-title').innerText = t.tone;
+      document.getElementById('btn-theme-black').innerText = t.black;
+      document.getElementById('btn-theme-white').innerText = t.white;
+
+      // テーマ適用
+      const pianoScreen = document.getElementById('piano-screen');
+      const startScreen = document.getElementById('start-screen');
+      const toneBar = document.getElementById('tone-selector-bar');
+      const bottomBar = document.getElementById('bottom-bar');
+      const settingsCard = document.getElementById('settings-card');
+      const loginCard = document.getElementById('login-card');
+
+      if (isDark) {
+        pianoScreen.className = "h-[100dvh] flex flex-col select-none overflow-hidden bg-black text-zinc-400";
+        startScreen.className = "fixed inset-0 flex flex-col items-center justify-center p-6 bg-[#020202] text-white z-[300]";
+        toneBar.className = "border-b border-zinc-900 p-2.5 z-[100] overflow-y-auto max-h-[36vh] custom-scrollbar bg-zinc-950/90";
+        bottomBar.className = "p-4 flex items-center justify-between border-t border-zinc-900 bg-zinc-950 shrink-0";
+        settingsCard.className = "p-8 rounded-3xl w-full max-w-sm border border-zinc-800 bg-zinc-950 text-white shadow-2xl";
+        loginCard.className = "p-8 rounded-3xl w-full max-w-sm border border-zinc-800 bg-zinc-950 text-white shadow-2xl";
+      } else {
+        pianoScreen.className = "h-[100dvh] flex flex-col select-none overflow-hidden bg-slate-100 text-slate-600";
+        startScreen.className = "fixed inset-0 flex flex-col items-center justify-center p-6 bg-slate-100 text-slate-900 z-[300]";
+        toneBar.className = "border-b border-slate-200 p-2.5 z-[100] overflow-y-auto max-h-[36vh] custom-scrollbar bg-white/90";
+        bottomBar.className = "p-4 flex items-center justify-between border-t border-slate-200 bg-white shrink-0";
+        settingsCard.className = "p-8 rounded-3xl w-full max-w-sm border border-slate-200 bg-white text-slate-900 shadow-2xl";
+        loginCard.className = "p-8 rounded-3xl w-full max-w-sm border border-slate-200 bg-white text-slate-900 shadow-2xl";
+      }
+
+      renderToneSelector();
+      renderKeyboard();
+    }
+
+    function renderToneSelector() {
+      const container = document.getElementById('tone-groups-container');
+      container.innerHTML = '';
+
+      Object.entries(SOUND_GROUPS).forEach(([cat, sounds]) => {
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'flex flex-col gap-1 min-w-[85px]';
+
+        const title = document.createElement('span');
+        title.className = `text-[7px] font-black uppercase tracking-tighter truncate px-0.5 ${cat === 'VIP_SPECIAL' ? 'text-amber-500' : state.theme === 'black' ? 'text-zinc-500' : 'text-slate-400'}`;
+        title.innerText = cat;
+        groupDiv.appendChild(title);
+
+        sounds.forEach(s => {
+          const locked = s.vip && !state.isVip;
+          const isSelected = state.activeTone.id === s.id;
+          const btn = document.createElement('button');
+          btn.disabled = locked;
+
+          let btnClass = "h-7 rounded-md text-[8px] font-bold border transition-all truncate px-1 flex items-center justify-center ";
+          if (locked) {
+            btnClass += "opacity-20 cursor-not-allowed border-transparent";
+          } else if (isSelected) {
+            btnClass += "bg-indigo-600 text-white border-indigo-500 shadow-md";
+          } else if (state.theme === 'black') {
+            btnClass += "bg-zinc-900/80 border-zinc-800 text-zinc-400 hover:border-zinc-600";
+          } else {
+            btnClass += "bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300";
+          }
+
+          btn.className = btnClass;
+          btn.innerText = locked ? "🔒" : s.n;
+          btn.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            state.activeTone = s;
+            document.getElementById('current-tone-name').innerText = s.n;
+            renderToneSelector();
+          });
+          groupDiv.appendChild(btn);
+        });
+
+        container.appendChild(groupDiv);
+      });
+    }
+
+    function renderKeyboard() {
+      const { whiteKeys, blackKeys } = buildPianoKeys();
+      const wrapper = document.getElementById('piano-keys-wrapper');
+      const whiteContainer = document.getElementById('white-keys-container');
+      const blackContainer = document.getElementById('black-keys-container');
+
+      wrapper.style.width = (whiteKeys.length * state.keyWidth) + 'px';
+      whiteContainer.innerHTML = '';
+      blackContainer.innerHTML = '';
+
+      const isDark = state.theme === 'black';
+
+      // 白鍵描画 (pointerdown単一登録で二重音排除)
+      whiteKeys.forEach((k) => {
+        const key = document.createElement('div');
+        key.className = `rounded-b-lg border-r border-b flex-shrink-0 active:bg-indigo-200 transition-all flex items-end justify-center pb-4 active:translate-y-1 shadow-md ${
+          isDark ? 'bg-zinc-100 border-zinc-300' : 'bg-white border-slate-300'
+        }`;
+        key.style.width = state.keyWidth + 'px';
+        key.style.height = '100%';
+        key.style.touchAction = 'none';
+
+        if (k.n === 'C') {
+          const label = document.createElement('span');
+          label.className = 'text-[9px] font-black text-slate-400 uppercase opacity-60';
+          label.innerText = k.id;
+          key.appendChild(label);
+        }
+
+        key.addEventListener('pointerdown', (e) => playNote(k.freq, e));
+        whiteContainer.appendChild(key);
+      });
+
+      // 黒鍵描画 (pointerdown単一登録で二重音排除)
+      blackKeys.forEach((k) => {
+        const bw = state.keyWidth * 0.65;
+        const left = (k.whiteIndexBefore * state.keyWidth) - (bw / 2);
+        const key = document.createElement('div');
+        key.className = 'absolute bg-gradient-to-b from-zinc-800 to-black rounded-b-md shadow-lg border-x border-black pointer-events-auto active:from-indigo-900 transition-all';
+        key.style.width = bw + 'px';
+        key.style.height = '60%';
+        key.style.left = left + 'px';
+        key.style.top = '0';
+        key.style.touchAction = 'none';
+
+        key.addEventListener('pointerdown', (e) => playNote(k.freq, e));
+        blackContainer.appendChild(key);
+      });
+    }
+
+    // --- イベントリスナー設定 ---
+    document.getElementById('btn-start').addEventListener('click', () => {
+      initAudio();
+      document.getElementById('start-screen').classList.add('hidden');
+      document.getElementById('piano-screen').classList.remove('hidden');
+    });
+
+    document.getElementById('btn-exit').addEventListener('click', () => {
+      document.getElementById('piano-screen').classList.add('hidden');
+      document.getElementById('start-screen').classList.remove('hidden');
+    });
+
+    document.getElementById('btn-open-settings').addEventListener('click', () => {
+      document.getElementById('settings-modal').classList.remove('hidden');
+    });
+
+    document.getElementById('btn-close-settings').addEventListener('click', () => {
+      document.getElementById('settings-modal').classList.add('hidden');
+    });
+
+    document.getElementById('btn-open-login').addEventListener('click', () => {
+      if (state.isVip) {
+        state.isVip = false;
+        renderUI();
+      } else {
+        document.getElementById('login-modal').classList.remove('hidden');
+      }
+    });
+
+    document.getElementById('btn-submit-login').addEventListener('click', () => {
+      state.isVip = true;
+      document.getElementById('login-modal').classList.add('hidden');
+      renderUI();
+    });
+
+    document.getElementById('select-lang').addEventListener('change', (e) => {
+      state.lang = e.target.value;
+      renderUI();
+    });
+
+    document.getElementById('btn-theme-black').addEventListener('click', () => {
+      state.theme = 'black';
+      document.getElementById('btn-theme-black').className = 'py-3 rounded-xl text-xs font-bold border transition-all bg-indigo-600 text-white border-indigo-500';
+      document.getElementById('btn-theme-white').className = 'py-3 rounded-xl text-xs font-bold border transition-all bg-zinc-900 text-zinc-400 border-zinc-800';
+      renderUI();
+    });
+
+    document.getElementById('btn-theme-white').addEventListener('click', () => {
+      state.theme = 'white';
+      document.getElementById('btn-theme-white').className = 'py-3 rounded-xl text-xs font-bold border transition-all bg-indigo-600 text-white border-indigo-500';
+      document.getElementById('btn-theme-black').className = 'py-3 rounded-xl text-xs font-bold border transition-all bg-slate-100 text-slate-700 border-slate-300';
+      renderUI();
+    });
+
+    document.getElementById('slider-keywidth').addEventListener('input', (e) => {
+      state.keyWidth = Number(e.target.value);
+      renderKeyboard();
+    });
+
+    document.getElementById('slider-volume').addEventListener('input', (e) => {
+      state.volume = Number(e.target.value);
+      if (masterGain) masterGain.gain.value = state.volume / 100;
+    });
+
+    // 初期化実行
+    renderUI();
+  </script>
+</body>
+</html>
